@@ -2,7 +2,6 @@
 import AccessibilitySnapshot
 import MapKit
 import Prefire
-@testable import PrefireVoiceOver
 import SnapshotTesting
 import SwiftUI
 import UIKit

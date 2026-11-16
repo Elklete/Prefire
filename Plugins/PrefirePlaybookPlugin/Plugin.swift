@@ -4,30 +4,28 @@ import PackagePlugin
 @main
 struct PrefirePlaybookPlugin: BuildToolPlugin {
     func createBuildCommands(context: PluginContext, target: Target) throws -> [Command] {
-        let executable = try context.tool(named: "PrefireBinary").url
+        let executable = try context.tool(named: "PrefireGeneratorTool").url
 
         let cachePath = context.pluginWorkDirectoryURL.appending(path: "Cache")
         let outputPath = context.pluginWorkDirectoryURL.appending(path: "Generated")
-        let targetPath = String(describing: target.directory)
-
         var arguments: [String] = [
             "playbook",
             "--output", outputPath.path,
-            "--target-path", targetPath,
-            "--config", targetPath,
+            "--config", String(describing: target.directory),
             "--cache-base-path", cachePath.path,
             "--verbose",
         ]
 
         let sources = (target as? SwiftSourceModuleTarget)?.sourceFiles.filter { $0.type == .source }.map(\.url.path)
-        arguments.append(contentsOf: sources ?? [targetPath])
+        arguments.append(contentsOf: sources ?? [String(describing: target.directory)])
 
         return [
-            .prebuildCommand(
+            .buildCommand(
                 displayName: "Running Prefire",
                 executable: executable,
                 arguments: arguments,
-                outputFilesDirectory: outputPath
+                inputFiles: (sources ?? [String(describing: target.directory)]).map { URL(fileURLWithPath: $0) },
+                outputFiles: [outputPath.appending(path: "PreviewModels.generated.swift")]
             ),
         ]
     }
@@ -38,16 +36,13 @@ struct PrefirePlaybookPlugin: BuildToolPlugin {
 
     extension PrefirePlaybookPlugin: XcodeBuildToolPlugin {
         func createBuildCommands(context: XcodeProjectPlugin.XcodePluginContext, target: XcodeProjectPlugin.XcodeTarget) throws -> [PackagePlugin.Command] {
-            let executable = try context.tool(named: "PrefireBinary").url
+            let executable = try context.tool(named: "PrefireGeneratorTool").url
 
             let cachePath = context.pluginWorkDirectoryURL.appending(path: "Cache")
             let outputPath = context.pluginWorkDirectoryURL.appending(path: "Generated")
-            let targetPath = context.xcodeProject.directoryURL.appending(path: target.displayName)
-
             var arguments: [String] = [
                 "playbook",
                 "--output", outputPath.path,
-                "--target-path", targetPath.path,
                 "--config", context.xcodeProject.directoryURL.path,
                 "--cache-base-path", cachePath.path,
                 "--verbose",
@@ -57,11 +52,12 @@ struct PrefirePlaybookPlugin: BuildToolPlugin {
             arguments.append(contentsOf: sources)
 
             return [
-                .prebuildCommand(
+                .buildCommand(
                     displayName: "Running Prefire Playbook",
                     executable: executable,
                     arguments: arguments,
-                    outputFilesDirectory: outputPath
+                    inputFiles: sources.map { URL(fileURLWithPath: $0) },
+                    outputFiles: [outputPath.appending(path: "PreviewModels.generated.swift")]
                 ),
             ]
         }

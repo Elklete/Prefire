@@ -8,7 +8,6 @@ private let tests = _TestFile.self
 private struct _TestFile { }
 
 import AccessibilitySnapshotParser
-import PrefireVoiceOver
 import SwiftUI
 import XCTest
 @testable import PrefireExample

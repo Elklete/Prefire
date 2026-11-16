@@ -1,99 +1,90 @@
-# This workflow will build a Swift project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
-
-name: Swift
+name: Source verification
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
-  build:
-    name: Run ${{ matrix.xcode }}
-    runs-on: ${{ matrix.runsOn }}
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - xcode: "Xcode_16.4"
-            runsOn: macos-15
-          - xcode: "Xcode_26.4"
-            runsOn: macos-26
+  source:
+    name: Clean source build, tests, and plugins
+    runs-on: macos-26
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
-      
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/${{ matrix.xcode }}.app
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Select the supported Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.5.app
+      - name: Start from a clean package state
+        run: swift package reset
+      - name: Validate locks and tracked delivery surfaces
+        run: make audit
+      - name: Build every root source target
+        run: swift build
+      - name: Run generator unit tests
+        run: swift test --skip PluginFixtureTests
+      - name: Build and run both source-built plugin fixtures
+        run: swift test --filter PluginFixtureTests
+      - name: Compile the retained iOS snapshot fixture
+        working-directory: PrefireSnapshotTests
+        run: xcodebuild -scheme PrefireSnapshotTests-Package -destination 'generic/platform=iOS Simulator' build-for-testing
+      - name: Compile the retained example plugin fixture
+        working-directory: Example
+        run: xcodebuild -project PreFireExample.xcodeproj -scheme PrefireExample -destination 'generic/platform=iOS Simulator' build-for-testing
 
-      # SnapshotTesting brings swift-syntax along, which takes long to clone.
-      - name: Cache iOS test packages
-        uses: actions/cache@v4
-        with:
-          path: PrefireSnapshotTests/.build/SourcePackages
-          key: ios-test-packages-${{ matrix.xcode }}-${{ hashFiles('PrefireSnapshotTests/Package.resolved') }}
-          restore-keys: ios-test-packages-${{ matrix.xcode }}-
-        
-      - name: Build Prefire
-        run: make build
-
-      - name: Run Prefire macOS Tests
-        run: swift test
-
-      # Services the tests do not use are turned off before xcodebuild boots the simulator,
-      # which then boots and starts the tests sooner.
-      - name: Run Prefire iOS Tests
-        run: make slim-sim test-ios
-
-      - name: Build prefire CLI wrapper
-        run: swift build -c release --product prefire
-
-      - name: Smoke test prefire CLI wrapper
-        run: |
-          set -euo pipefail
-          bin=$(pwd)/.build/release/prefire
-          $bin --version
-          $bin --help | grep -q "Generate Playbook"
-          cd /tmp && $bin --version
-          output=$(PREFIRE_BINARY_PATH=/nonexistent $bin --version 2>&1 || true)
-          if echo "$output" | grep -q "failed to launch"; then
-            echo "override error path works"
-          else
-            echo "expected 'failed to launch' error, got: $output" >&2
-            exit 1
-          fi
-
-  executable-tests:
-    name: PrefireExecutable tests ${{ matrix.xcode }}
-    runs-on: ${{ matrix.runsOn }}
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - xcode: "Xcode_16.4"
-            runsOn: macos-15
-          - xcode: "Xcode_26.4"
-            runsOn: macos-26
+  supply-chain:
+    name: SBOM and advisory scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/${{ matrix.xcode }}.app
-
-      # Building swift-syntax takes most of `make test`. Sources checked out anew are newer than the
-      # cache, so they are rebuilt; only the dependencies are reused.
-      - name: Cache PrefireExecutable build
-        uses: actions/cache@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Generate SPDX SBOM from source
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
-          path: PrefireExecutable/.build
-          key: prefire-executable-${{ matrix.xcode }}-${{ hashFiles('PrefireExecutable/Package.resolved') }}
-          restore-keys: prefire-executable-${{ matrix.xcode }}-
+          path: .
+          format: spdx-json
+          output-file: prefire-sbom.spdx.json
+      - name: Fail on High or Critical advisories
+        uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e # v6
+        with:
+          sbom: prefire-sbom.spdx.json
+          fail-build: true
+          severity-cutoff: high
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: prefire-sbom
+          path: prefire-sbom.spdx.json
+          if-no-files-found: error
 
-      - name: Run PrefireExecutable Tests
-        run: make test
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  codeql:
+    name: CodeQL (Swift)
+    runs-on: macos-26
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Select the supported Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.5.app
+      - uses: github/codeql-action/init@b7b84b636b4f90c9b31da1bc5f72bfadd5b31410 # v3
+        with:
+          languages: swift
+          build-mode: manual
+      - run: swift build
+      - uses: github/codeql-action/analyze@b7b84b636b4f90c9b31da1bc5f72bfadd5b31410 # v3

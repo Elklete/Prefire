@@ -13,15 +13,14 @@ let package = Package(
     platforms: [.iOS(.v15)],
     dependencies: [
         .package(name: "Prefire", path: "../"),
-        .package(url: "https://github.com/cashapp/AccessibilitySnapshot", from: "0.13.0"),
-        .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0"),
+        .package(url: "https://github.com/cashapp/AccessibilitySnapshot", exact: "0.13.1"),
+        .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", exact: "1.19.6"),
     ],
     targets: [
         .testTarget(
             name: "PrefireSnapshotTests",
             dependencies: [
                 .product(name: "Prefire", package: "Prefire"),
-                .product(name: "PrefireVoiceOver", package: "Prefire"),
                 .product(name: "AccessibilitySnapshot", package: "AccessibilitySnapshot"),
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ]

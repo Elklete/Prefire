@@ -7,7 +7,6 @@ import Prefire
 import SnapshotTesting
 #if os(iOS)
     import AccessibilitySnapshotParser
-    import PrefireVoiceOver
 #endif
 
 @MainActor class PreviewTests: XCTestCase {

@@ -8,3 +8,5 @@ DerivedData/
 .netrc
 prefire.tar.gz
 prefire-mcp-*.mcpb
+*.d
+*.dia

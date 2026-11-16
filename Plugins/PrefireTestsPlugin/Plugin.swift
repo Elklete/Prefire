@@ -4,7 +4,7 @@ import PackagePlugin
 @main
 struct PrefireTestsPlugin: BuildToolPlugin {
     func createBuildCommands(context: PluginContext, target: Target) throws -> [Command] {
-        let executable = try context.tool(named: "PrefireBinary").url
+        let executable = try context.tool(named: "PrefireGeneratorTool").url
 
         let cachePath = context.pluginWorkDirectoryURL.appending(path: "Cache")
         let outputPath = context.pluginWorkDirectoryURL.appending(path: "Generated")
@@ -27,18 +27,13 @@ struct PrefireTestsPlugin: BuildToolPlugin {
         let sources = testedTarget.sourceFiles.filter { $0.type == .source }.map(\.url.path)
         arguments.append(contentsOf: sources)
 
-        let environment = [
-            "TARGET_DIR": String(describing: target.directory),
-            "PACKAGE_DIR": context.package.directoryURL.path(percentEncoded: false),
-        ]
-
         return [
-            .prebuildCommand(
+            .buildCommand(
                 displayName: "Running Prefire",
                 executable: executable,
                 arguments: arguments,
-                environment: environment,
-                outputFilesDirectory: outputPath
+                inputFiles: sources.map { URL(fileURLWithPath: $0) },
+                outputFiles: [outputPath.appending(path: "PreviewTests.generated.swift")]
             ),
         ]
     }
@@ -49,7 +44,7 @@ struct PrefireTestsPlugin: BuildToolPlugin {
 
     extension PrefireTestsPlugin: XcodeBuildToolPlugin {
         func createBuildCommands(context: XcodeProjectPlugin.XcodePluginContext, target: XcodeProjectPlugin.XcodeTarget) throws -> [PackagePlugin.Command] {
-            let executable = try context.tool(named: "PrefireBinary").url
+            let executable = try context.tool(named: "PrefireGeneratorTool").url
 
             let cacheURL = context.pluginWorkDirectoryURL.appending(path: "Cache")
             let outputURL = context.pluginWorkDirectoryURL.appending(path: "Generated")
@@ -73,17 +68,13 @@ struct PrefireTestsPlugin: BuildToolPlugin {
             let sources = testedTarget.inputFiles.filter { $0.type == .source }.map(\.url.path)
             arguments.append(contentsOf: sources)
 
-            let environment = [
-                "PROJECT_DIR": context.xcodeProject.directoryURL.path(percentEncoded: false),
-            ]
-
             return [
-                .prebuildCommand(
+                .buildCommand(
                     displayName: "Running Prefire Tests",
                     executable: executable,
                     arguments: arguments,
-                    environment: environment,
-                    outputFilesDirectory: outputURL
+                    inputFiles: sources.map { URL(fileURLWithPath: $0) },
+                    outputFiles: [outputURL.appending(path: "PreviewTests.generated.swift")]
                 ),
             ]
         }

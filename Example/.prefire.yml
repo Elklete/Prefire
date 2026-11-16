@@ -8,7 +8,6 @@ test_configuration:
   - imports:
       - UIKit
       - Foundation
-  - use_grouped_snapshots: false
   - voiceover_snapshots:
       - image
       - text

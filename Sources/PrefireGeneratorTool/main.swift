@@ -1,0 +1,3 @@
+import PrefireGeneratorSupport
+
+PrefireCommand.main()

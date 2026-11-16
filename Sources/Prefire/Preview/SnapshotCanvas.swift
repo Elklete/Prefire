@@ -10,8 +10,7 @@ import UIKit
 /// of SnapshotTesting sets up, so an image it captures matches one the strategy would render.
 ///
 /// Unlike SnapshotTesting it does not swap `WKWebView`, `SCNView` and `SKView` for their own
-/// snapshots: these render blank, as with `layer.render(in:)` in general. Render mode swaps them with
-/// `PrefireRenderedViews` before it captures.
+/// snapshots: these render blank, as with `layer.render(in:)` in general.
 @MainActor
 final class SnapshotCanvas {
     /// Hosting controller's view: the view that is compared while waiting and then captured.

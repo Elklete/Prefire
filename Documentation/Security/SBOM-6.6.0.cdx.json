@@ -1,0 +1,117 @@
+{
+  "$schema": "https://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:ee7522cb-67f4-513e-ae8c-8b66e09870ee",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-16T00:00:00Z",
+    "component": {
+      "type": "application",
+      "name": "Prefire",
+      "version": "6.6.0-source-hardening",
+      "properties": [
+        { "name": "upstream.tag", "value": "6.6.0" },
+        { "name": "upstream.commit", "value": "c49c1ae65378e48e6a8dad9993a770c8c47f8452" }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library", "name": "swift-argument-parser", "version": "1.2.3",
+      "purl": "pkg:github/apple/swift-argument-parser@8f4d2753f0e4778c76d5f05ad16c74f707390531",
+      "licenses": [{ "license": { "id": "Apache-2.0" } }],
+      "externalReferences": [{ "type": "vcs", "url": "https://github.com/apple/swift-argument-parser.git" }]
+    },
+    {
+      "type": "library", "name": "swift-syntax", "version": "600.0.1",
+      "purl": "pkg:github/swiftlang/swift-syntax@0687f71944021d616d34d922343dcef086855920",
+      "licenses": [{ "license": { "id": "Apache-2.0" } }],
+      "externalReferences": [{ "type": "vcs", "url": "https://github.com/swiftlang/swift-syntax.git" }]
+    },
+    {
+      "type": "library", "name": "PathKit", "version": "1.0.1",
+      "purl": "pkg:github/kylef/PathKit@3bfd2737b700b9a36565a8c94f4ad2b050a5e574",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "externalReferences": [{ "type": "vcs", "url": "https://github.com/kylef/PathKit.git" }]
+    },
+    {
+      "type": "library", "name": "Stencil", "version": "0.15.1",
+      "purl": "pkg:github/stencilproject/Stencil@4f222ac85d673f35df29962fc4c36ccfdaf9da5b",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "externalReferences": [{ "type": "vcs", "url": "https://github.com/stencilproject/Stencil.git" }]
+    },
+    {
+      "type": "library", "name": "StencilSwiftKit", "version": "2.10.1",
+      "purl": "pkg:github/SwiftGen/StencilSwiftKit@20e2de5322c83df005939d9d9300fab130b49f97",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "externalReferences": [{ "type": "vcs", "url": "https://github.com/SwiftGen/StencilSwiftKit.git" }]
+    },
+    {
+      "type": "library", "name": "swift-snapshot-testing", "version": "1.19.6",
+      "purl": "pkg:github/pointfreeco/swift-snapshot-testing@28e5de025e3fd98991791bfbf83023ab3708da03",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "externalReferences": [{ "type": "vcs", "url": "https://github.com/pointfreeco/swift-snapshot-testing.git" }]
+    },
+    {
+      "type": "library", "name": "Komondor", "version": "1.1.3",
+      "purl": "pkg:github/shibapm/Komondor@90b087b1e39069684b1ff4bf915c2aae594f2d60",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "externalReferences": [{ "type": "vcs", "url": "https://github.com/shibapm/Komondor.git" }]
+    },
+    {
+      "type": "library", "name": "PackageConfig", "version": "1.1.3",
+      "purl": "pkg:github/shibapm/PackageConfig@58523193c26fb821ed1720dcd8a21009055c7cdb",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "externalReferences": [{ "type": "vcs", "url": "https://github.com/shibapm/PackageConfig.git" }]
+    },
+    {
+      "type": "library", "name": "ShellOut", "version": "2.3.0",
+      "purl": "pkg:github/JohnSundell/ShellOut@e1577acf2b6e90086d01a6d5e2b8efdaae033568",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "externalReferences": [{ "type": "vcs", "url": "https://github.com/JohnSundell/ShellOut.git" }]
+    },
+    {
+      "type": "library", "name": "Spectre", "version": "0.10.1",
+      "purl": "pkg:github/kylef/Spectre@26cc5e9ae0947092c7139ef7ba612e34646086c7",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "externalReferences": [{ "type": "vcs", "url": "https://github.com/kylef/Spectre.git" }]
+    },
+    {
+      "type": "library", "name": "swift-custom-dump", "version": "1.7.3",
+      "purl": "pkg:github/pointfreeco/swift-custom-dump@4fb9e7cbb4b8f5a7354005db39447f570d6b3e19",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "externalReferences": [{ "type": "vcs", "url": "https://github.com/pointfreeco/swift-custom-dump" }]
+    },
+    {
+      "type": "library", "name": "XCTestDynamicOverlay", "version": "1.13.1",
+      "purl": "pkg:github/pointfreeco/xctest-dynamic-overlay@d9308ad679143c26a30dec52daefe82f54af2b82",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "externalReferences": [{ "type": "vcs", "url": "https://github.com/pointfreeco/xctest-dynamic-overlay" }]
+    },
+    {
+      "type": "library", "name": "AccessibilitySnapshot", "version": "0.13.1",
+      "purl": "pkg:github/cashapp/AccessibilitySnapshot@7a1d34aea8966c10b5002e17df954a171d6c3149",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "externalReferences": [{ "type": "vcs", "url": "https://github.com/cashapp/AccessibilitySnapshot" }]
+    },
+    {
+      "type": "library", "name": "ios-snapshot-test-case", "version": "8.0.0",
+      "purl": "pkg:github/uber/ios-snapshot-test-case@7b10770333a961be6e5a41c9ce04b8c6d3990126",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "externalReferences": [{ "type": "vcs", "url": "https://github.com/uber/ios-snapshot-test-case" }]
+    },
+    {
+      "type": "library", "name": "swift-snapshot-testing-fixture", "version": "1.15.4",
+      "purl": "pkg:github/pointfreeco/swift-snapshot-testing@5b0c434778f2c1a4c9b5ebdb8682b28e84dd69bd",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "properties": [{ "name": "scope", "value": "Example fixture only" }]
+    },
+    {
+      "type": "library", "name": "swift-syntax-fixture", "version": "510.0.0 / 604.0.0",
+      "purl": "pkg:github/swiftlang/swift-syntax@08a2f0a9a30e0f705f79c9cfaca1f68b71bdc775",
+      "licenses": [{ "license": { "id": "Apache-2.0" } }],
+      "properties": [{ "name": "additional.fixture.revision", "value": "050f1a346fbbac0ca2cfb15a95274f7bd1cf0ccf" }]
+    }
+  ]
+}

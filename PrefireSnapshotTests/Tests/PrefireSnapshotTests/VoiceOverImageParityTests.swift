@@ -1,7 +1,6 @@
 #if os(iOS)
 import AccessibilitySnapshot
 import Prefire
-import PrefireVoiceOver
 import SnapshotTesting
 import SwiftUI
 import XCTest
