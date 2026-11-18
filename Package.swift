@@ -27,10 +27,8 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser.git", .upToNextMinor(from: "1.2.3")),
-        .package(url: "https://github.com/kylef/PathKit.git", .upToNextMinor(from: "1.0.1")),
         .package(url: "https://github.com/swiftlang/swift-syntax.git", .upToNextMinor(from: "600.0.0")),
-        .package(url: "https://github.com/stencilproject/Stencil.git", from: "0.15.1"),
-        .package(url: "https://github.com/SwiftGen/StencilSwiftKit.git", from: "2.10.1"),
+        .package(url: "https://github.com/Elklete/PrefireTemplateSupport.git", exact: "1.0.0"),
     ],
     targets: [
         .target(
@@ -46,9 +44,9 @@ let package = Package(
             dependencies: [
                 .product(name: "SwiftSyntax", package: "swift-syntax"),
                 .product(name: "SwiftParser", package: "swift-syntax"),
-                .product(name: "Stencil", package: "Stencil"),
-                .product(name: "StencilSwiftKit", package: "StencilSwiftKit"),
-                "PathKit",
+                .product(name: "Stencil", package: "prefiretemplatesupport"),
+                .product(name: "StencilSwiftKit", package: "prefiretemplatesupport"),
+                .product(name: "PathKit", package: "prefiretemplatesupport"),
             ]
         ),
         .executableTarget(

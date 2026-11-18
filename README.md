@@ -61,6 +61,15 @@ Your previews are already tests. **Prefire** turns the `#Preview` blocks you wri
 - 🧠 **Fast Caching** — fingerprint-based AST and body caching avoids redundant work
 - ✍️ **Stencil Templates** — customize output with [your own templates](Documentation/Templates.md)
 
+### Generator source provenance
+
+The tracked macOS plugin generator is rebuilt from Prefire's root Swift source
+graph. Its template runtime comes from the pinned, dependency-free
+[`Elklete/PrefireTemplateSupport`](https://github.com/Elklete/PrefireTemplateSupport)
+source package, which preserves the PathKit, Stencil and StencilSwiftKit modules
+and their upstream notices without resolving their unused test-runner or Git-hook
+tooling packages.
+
 ### Why Prefire?
 
 - 🔥 **No second set of UI states.** Tests come from the previews you already keep up to date.

@@ -86,7 +86,7 @@ IOS_SIMULATOR_SLIM_JOBS := \
 # `make slim-sim` are added and removed. It survives `simctl erase`.
 IOS_SIMULATOR_DISABLED_STORE = /private/var/tmp/com.apple.CoreSimulator.SimDevice.$(IOS_SIMULATOR_ID)/disabled.plist
 
-.PHONY: help build cli binary test test-ios integration package-validate validate-bundled-generator slim-sim restore-sim update archive mcpb clean
+.PHONY: help build cli binary test test-ios integration package-validate validate-bundled-generator validate-template-support-graph slim-sim restore-sim update archive mcpb clean
 
 ##@ General
 
@@ -142,8 +142,12 @@ integration: ## Build the bundled-generator plugins against the integration fixt
 validate-bundled-generator: ## Validate the bundled macOS generator metadata and executable
 	Scripts/verify-bundled-generator.sh
 
+validate-template-support-graph: ## Validate that template support resolves from the trimmed source package only
+	Scripts/verify-template-support-graph.sh
+
 package-validate: validate-bundled-generator ## Validate the pinned root package graph and bundled generator
 	swift package resolve --skip-update
+	Scripts/verify-template-support-graph.sh
 
 test-ios: ## Run the Prefire library tests on an iPhone simulator
 	cd PrefireSnapshotTests && xcodebuild test \
