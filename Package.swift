@@ -70,15 +70,19 @@ let package = Package(
             name: "PrefirePlaybookPlugin",
             capability: .buildTool(),
             dependencies: [
-                "PrefireGeneratorTool",
+                "PrefireBinary",
             ]
         ),
         .plugin(
             name: "PrefireTestsPlugin",
             capability: .buildTool(),
             dependencies: [
-                "PrefireGeneratorTool",
+                "PrefireBinary",
             ]
+        ),
+        .binaryTarget(
+            name: "PrefireBinary",
+            path: "Binaries/PrefireBinary.artifactbundle"
         ),
     ]
 )

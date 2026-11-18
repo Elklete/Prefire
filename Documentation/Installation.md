@@ -102,7 +102,7 @@ Install the CLI via [Mint](https://github.com/yonaskolb/Mint):
 mint install BarredEwe/Prefire
 ```
 
-Mint and SwiftPM compile `prefire` from the package's pinned source dependency graph. The build-tool plugins use that same source-built executable; neither embeds nor downloads a checked-in generator binary.
+Mint and SwiftPM compile `prefire` from the package's pinned source dependency graph. The build-tool plugins use the package's checked-in universal macOS generator bundle, rebuilt and validated from that same source graph for each version.
 
 For local development, run the root executable directly:
 

@@ -124,9 +124,9 @@ Just run the test target 🚀 — Prefire will auto-generate snapshots based on 
 
 Step-by-step setup is in the [Installation guide](Documentation/Installation.md).
 
-### Source-built generator
+### Bundled macOS generator
 
-SwiftPM resolves the versions pinned in `Package.resolved` and compiles the `prefire` generator from source for both the CLI and build-tool plugins. Consumer builds never download or execute a checked-in generator binary; release archives are produced separately from that same source build.
+SwiftPM resolves the versions pinned in `Package.resolved` and compiles the root `prefire` executable from source for local development and release archives. The build-tool plugins execute the checked-in, universal macOS `PrefireBinary.artifactbundle`, which is rebuilt and validated from that same pinned source graph for every generator version.
 
 ### Requirements
 

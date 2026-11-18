@@ -12,11 +12,12 @@ Run `make` to list the development tasks. The ones you need most:
 
 ```bash
 make build      # Build Prefire for the iOS Simulator
-make package-validate # Check the pinned source graph and reject generator artifacts
+make package-validate # Check the pinned source graph and bundled generator
 make test       # Run the Prefire macOS and generator tests
-make integration # Build the source-backed plugin integration fixture
+make integration # Build the bundled-generator plugin integration fixture
 make test-ios   # Run the Prefire library tests on an iPhone simulator
 make cli        # Build the source-backed prefire executable
+make binary     # Rebuild and validate the universal bundled macOS generator
 ```
 
 CI runs the same commands, see [.github/workflows/swift.yml](.github/workflows/swift.yml).
@@ -29,6 +30,6 @@ The [Example](Example) project shows Prefire in an Xcode app with a snapshot tes
 - `PrefireGenerator` — handles stencil templating + snapshot generation
 - `PrefireCacheManager` — unifies caching for `Types` and `Previews`
 - `PrefireTestsPlugin` / `PrefirePlaybookPlugin` — SPM/Xcode integrations
-- `PrefireGeneratorTool` — source-built CLI target, exposed as the `prefire` executable
+- `PrefireGeneratorTool` — source-built CLI target, exposed as the `prefire` executable; it also builds `PrefireBinary.artifactbundle`
 
 Generated code comes from [Stencil templates](Documentation/Templates.md).

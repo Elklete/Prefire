@@ -39,7 +39,7 @@ jobs:
           key: root-package-${{ matrix.xcode }}-${{ hashFiles('Package.resolved') }}
           restore-keys: root-package-${{ matrix.xcode }}-
 
-      - name: Validate source-only package graph
+      - name: Validate bundled generator and package graph
         run: make package-validate
 
       # SnapshotTesting brings swift-syntax along, which takes long to clone.
@@ -56,7 +56,7 @@ jobs:
       - name: Run Prefire macOS Tests
         run: make test
 
-      - name: Run source-built plugin integration fixture
+      - name: Run bundled-generator plugin integration fixture
         run: make integration
 
       # Services the tests do not use are turned off before xcodebuild boots the simulator,

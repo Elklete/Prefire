@@ -9,6 +9,8 @@ SHELL := /bin/bash
 VERSION_FILE := Sources/PrefireGeneratorTool/Commands/Version/Version.swift
 CLI_BIN := .build/release/prefire
 CUR_VERSION = $(shell sed -n 's/.*static let value: String = "\([^"]*\)".*/\1/p' $(VERSION_FILE))
+BUNDLE := Binaries/PrefireBinary.artifactbundle
+BUNDLE_BIN = $(BUNDLE)/prefire-$(CUR_VERSION)-macos/bin/prefire
 
 # MCP Bundle of `prefire mcp` for the MCP Registry, which wants "mcp" in the file name.
 MCPB_CLI := npx --yes @anthropic-ai/mcpb@2.1.2
@@ -84,7 +86,7 @@ IOS_SIMULATOR_SLIM_JOBS := \
 # `make slim-sim` are added and removed. It survives `simctl erase`.
 IOS_SIMULATOR_DISABLED_STORE = /private/var/tmp/com.apple.CoreSimulator.SimDevice.$(IOS_SIMULATOR_ID)/disabled.plist
 
-.PHONY: help build cli test test-ios integration package-validate validate-source-only slim-sim restore-sim update archive mcpb clean
+.PHONY: help build cli binary test test-ios integration package-validate validate-bundled-generator slim-sim restore-sim update archive mcpb clean
 
 ##@ General
 
@@ -126,18 +128,21 @@ build: ## Build Prefire (iOS Simulator, Release)
 cli: ## Build the source-backed prefire executable
 	swift build -c release --product prefire
 
+binary: ## Build and validate the universal bundled macOS generator from root source
+	Scripts/build-bundled-generator.sh
+
 ##@ Test
 
 test: ## Run all Prefire macOS and generator unit tests
 	swift test
 
-integration: ## Build the source-backed plugins against the integration fixture
+integration: ## Build the bundled-generator plugins against the integration fixture
 	swift test --package-path Fixtures/PluginIntegration
 
-validate-source-only: ## Reject tracked generator binaries and binary-target wiring
-	Scripts/verify-source-only.sh
+validate-bundled-generator: ## Validate the bundled macOS generator metadata and executable
+	Scripts/verify-bundled-generator.sh
 
-package-validate: validate-source-only ## Validate the pinned root package graph
+package-validate: validate-bundled-generator ## Validate the pinned root package graph and bundled generator
 	swift package resolve --skip-update
 
 test-ios: ## Run the Prefire library tests on an iPhone simulator
@@ -171,12 +176,13 @@ restore-sim: ## Turn the services of `make slim-sim` back on (takes effect on th
 
 ##@ Release
 
-update: ## Bump the source-built prefire version (make update version=x.y.z)
+update: ## Bump the generator version and rebuild its bundled macOS artifact (make update version=x.y.z)
 	$(call require-version)
 	$(if $(version),,$(error Pass version, e.g. make update version=1.0.0))
 	@echo "New version: $(version)"
 	@echo "Old version: $(CUR_VERSION)"
 	sed -i '' 's/static let value: String = "[^"]*"/static let value: String = "$(version)"/' "$(VERSION_FILE)"
+	$(MAKE) binary
 
 archive: cli ## Pack the source-built CLI into prefire.tar.gz
 	$(call require-version)

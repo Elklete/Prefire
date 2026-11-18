@@ -4,7 +4,7 @@ import PackagePlugin
 @main
 struct PrefireTestsPlugin: BuildToolPlugin {
     func createBuildCommands(context: PluginContext, target: Target) throws -> [Command] {
-        let executable = try context.tool(named: "PrefireGeneratorTool").url
+        let executable = try context.tool(named: "PrefireBinary").url
 
         let cachePath = context.pluginWorkDirectoryURL.appending(path: "Cache")
         let outputPath = context.pluginWorkDirectoryURL.appending(path: "Generated")
@@ -58,7 +58,7 @@ struct PrefireTestsPlugin: BuildToolPlugin {
 
     extension PrefireTestsPlugin: XcodeBuildToolPlugin {
         func createBuildCommands(context: XcodeProjectPlugin.XcodePluginContext, target: XcodeProjectPlugin.XcodeTarget) throws -> [PackagePlugin.Command] {
-            let executable = try context.tool(named: "PrefireGeneratorTool").url
+            let executable = try context.tool(named: "PrefireBinary").url
 
             let cacheURL = context.pluginWorkDirectoryURL.appending(path: "Cache")
             let outputURL = context.pluginWorkDirectoryURL.appending(path: "Generated")
