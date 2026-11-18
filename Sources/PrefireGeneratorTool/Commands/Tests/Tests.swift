@@ -21,6 +21,8 @@ extension Prefire {
         var config: String?
         @Option(help: "Path to generated file.")
         var output: String?
+        @Option(help: .hidden)
+        var pluginOutput: String?
         @Option(help: "Path to your Snapshot Tests Target.")
         var testTargetPath: String?
         @Option(help: "Base path to the cache directory.")
@@ -44,6 +46,7 @@ extension Prefire {
                     template: template,
                     sources: sources,
                     output: output,
+                    pluginOutput: pluginOutput,
                     testTargetPath: testTargetPath,
                     cacheBasePath: cacheBasePath,
                     device: device,

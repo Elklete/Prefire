@@ -1,5 +1,5 @@
 import Foundation
-@testable import prefire
+@testable import PrefireGeneratorTool
 import XCTest
 import PathKit
 
@@ -14,6 +14,7 @@ class GenerateTestsCommandTests: XCTestCase {
             template: nil,
             sources: [],
             output: "User/Tests/PreviewTests.generated.swift",
+            pluginOutput: nil,
             testTargetPath: "User/Tests",
             cacheBasePath: nil,
             device: nil,
@@ -70,6 +71,20 @@ class GenerateTestsCommandTests: XCTestCase {
         let expectedArguments = [
             "mainTarget": "\(options.target ?? "")" as NSString,
             "file": options.testTargetPath.flatMap({ $0 + "PreviewTests.generated.swift" })!.string as NSString,
+        ] as [String: NSObject]
+
+        let arguments = await GenerateTestsCommand.makeArguments(for: options)
+
+        XCTAssertEqual(YAMLParser().string(from: arguments), YAMLParser().string(from: expectedArguments))
+    }
+
+    func test_makeArguments_plugin_output_uses_per_source_snapshot_paths() async {
+        options.useGroupedSnapshots = false
+        options.pluginOutput = "/tmp/PreviewTests.generated.swift"
+
+        let expectedArguments = [
+            "mainTarget": "\(options.target ?? "")" as NSString,
+            "file": options.testTargetPath.flatMap({ $0 + "{PREVIEW_FILE_NAME}Tests.generated.swift" })!.string as NSString,
         ] as [String: NSObject]
 
         let arguments = await GenerateTestsCommand.makeArguments(for: options)

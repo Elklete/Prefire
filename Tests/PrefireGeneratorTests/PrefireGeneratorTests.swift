@@ -529,6 +529,66 @@ final class PrefireGeneratorTests: XCTestCase {
         XCTAssertTrue(result.contains("class TestPreviewTests: XCTestCase"), "Should use source file name as class name for ungrouped snapshots")
     }
 
+    func testPluginAggregateUngroupedOutputPreservesPerSourceTemplateValues() async throws {
+        let firstSource = Path("/tmp/PrefirePluginAggregateFirst.swift")
+        let secondSource = Path("/tmp/PrefirePluginAggregateSecond.swift")
+        let output = Path("/tmp/PrefirePluginAggregatePreviewTests.generated.swift")
+        let firstDirectOutput = Path("/tmp/PrefirePluginAggregateFirstTests.generated.swift")
+        let secondDirectOutput = Path("/tmp/PrefirePluginAggregateSecondTests.generated.swift")
+        let cache = Path("/tmp/cache_prefire_plugin_aggregate/")
+
+        try? output.delete()
+        try? firstDirectOutput.delete()
+        try? secondDirectOutput.delete()
+        try? cache.delete()
+
+        try firstSource.write("""
+        import SwiftUI
+
+        #Preview("First") {
+            Text("First")
+        }
+        """)
+        try secondSource.write("""
+        import SwiftUI
+
+        #Preview("Second") {
+            Text("Second")
+        }
+        """)
+
+        let template = """
+        struct {PREVIEW_FILE_NAME}SnapshotMarker {
+            static let snapshotPath = "{{ argument.file }}"
+        }
+        """
+
+        try await PrefireGenerator.generate(
+            version: "1.0.0",
+            sources: [firstSource, secondSource],
+            output: output,
+            arguments: [
+                "file": "/tmp/PluginSnapshots/{PREVIEW_FILE_NAME}Tests.generated.swift" as NSString,
+            ],
+            inlineTemplate: template,
+            defaultEnabled: true,
+            cacheDir: cache,
+            useGroupedSnapshots: false,
+            aggregateUngroupedOutput: true
+        )
+
+        XCTAssertTrue(output.exists, "The plugin mode must write its declared output file")
+        XCTAssertFalse(firstDirectOutput.exists, "Plugin mode must not emit undeclared per-source files")
+        XCTAssertFalse(secondDirectOutput.exists, "Plugin mode must not emit undeclared per-source files")
+
+        let result = try output.read(.utf8)
+        XCTAssertTrue(result.contains("struct PrefirePluginAggregateFirstSnapshotMarker"))
+        XCTAssertTrue(result.contains("struct PrefirePluginAggregateSecondSnapshotMarker"))
+        XCTAssertTrue(result.contains("/tmp/PluginSnapshots/PrefirePluginAggregateFirstTests.generated.swift"))
+        XCTAssertTrue(result.contains("/tmp/PluginSnapshots/PrefirePluginAggregateSecondTests.generated.swift"))
+        XCTAssertFalse(result.contains("{PREVIEW_FILE_NAME}"))
+    }
+
     func testTemplateWaitsForPreviewBeforeCapturing() async throws {
         let file = Path(fixtureTestPreviewSource)
         let output = Path("/tmp/WaitPreviewTests.generated.swift")

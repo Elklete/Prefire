@@ -96,13 +96,19 @@ prefire playbook --help
 
 ### Mint
 
-Install the bundled CLI via [Mint](https://github.com/yonaskolb/Mint):
+Install the CLI via [Mint](https://github.com/yonaskolb/Mint):
 
 ```bash
 mint install BarredEwe/Prefire
 ```
 
-The installed `prefire` wrapper ships the `PrefireBinary` artifactbundle as an embedded SwiftPM resource, so it is self-contained — no external binary path is required. To override the path of the embedded binary (e.g. for local development against an in-progress build), set `PREFIRE_BINARY_PATH` to the absolute path of the `prefire` executable.
+Mint and SwiftPM compile `prefire` from the package's pinned source dependency graph. The build-tool plugins use that same source-built executable; neither embeds nor downloads a checked-in generator binary.
+
+For local development, run the root executable directly:
+
+```bash
+swift run prefire --help
+```
 
 ---
 

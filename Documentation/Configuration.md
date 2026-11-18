@@ -76,6 +76,8 @@ render_configuration:
 | `full_page_snapshots` | Capture the whole scrollable content of screen previews (the default `#Preview` layout) instead of only the first screen. iOS/tvOS only. See [Full-page snapshots](#full-page-snapshots). Default: `false` |
 | `voiceover_snapshots` | Which accessibility snapshots each test records: a list of `image` (the accessibility PNG only) and `text`, or `none`. Does not affect the preview PNG. See [VoiceOver snapshots](#voiceover-snapshots). Default: `image` |
 
+Build-tool plugins always declare one deterministic Swift output to SwiftPM/Xcode: `PreviewTests.generated.swift` for tests and `PreviewModels.generated.swift` for playbooks. They still honor all `.prefire.yml` settings. In ungrouped mode, the test plugin combines each source's rendered template body into that declared file while preserving each source's `{PREVIEW_FILE_NAME}` substitutions and snapshot reference path.
+
 ---
 
 ### Full-page snapshots

@@ -1,0 +1,4 @@
+test_configuration:
+  target: PluginFixtureApp
+  template_file_path: CustomSnapshotTests.stencil
+  use_grouped_snapshots: false

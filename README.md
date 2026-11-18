@@ -124,6 +124,10 @@ Just run the test target 🚀 — Prefire will auto-generate snapshots based on 
 
 Step-by-step setup is in the [Installation guide](Documentation/Installation.md).
 
+### Source-built generator
+
+SwiftPM resolves the versions pinned in `Package.resolved` and compiles the `prefire` generator from source for both the CLI and build-tool plugins. Consumer builds never download or execute a checked-in generator binary; release archives are produced separately from that same source build.
+
 ### Requirements
 
 - Swift 6.0 or higher

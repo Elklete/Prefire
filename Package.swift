@@ -22,8 +22,15 @@ let package = Package(
         ),
         .executable(
             name: "prefire",
-            targets: ["PrefireCLI"]
+            targets: ["PrefireGeneratorTool"]
         ),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-argument-parser.git", .upToNextMinor(from: "1.2.3")),
+        .package(url: "https://github.com/kylef/PathKit.git", .upToNextMinor(from: "1.0.1")),
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", .upToNextMinor(from: "600.0.0")),
+        .package(url: "https://github.com/stencilproject/Stencil.git", from: "0.15.1"),
+        .package(url: "https://github.com/SwiftGen/StencilSwiftKit.git", from: "2.10.1"),
     ],
     targets: [
         .target(
@@ -34,33 +41,44 @@ let package = Package(
             name: "Prefire",
             dependencies: []
         ),
+        .target(
+            name: "PrefireCore",
+            dependencies: [
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+                .product(name: "SwiftParser", package: "swift-syntax"),
+                .product(name: "Stencil", package: "Stencil"),
+                .product(name: "StencilSwiftKit", package: "StencilSwiftKit"),
+                "PathKit",
+            ]
+        ),
         .executableTarget(
-            name: "PrefireCLI",
-            resources: [
-                .copy("../../Binaries/PrefireBinary.artifactbundle"),
+            name: "PrefireGeneratorTool",
+            dependencies: [
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                "PrefireCore",
             ]
         ),
         .testTarget(
-            name: "PrefireCLITests",
-            dependencies: ["PrefireCLI", "Prefire"]
+            name: "PrefireTests",
+            dependencies: ["Prefire"]
+        ),
+        .testTarget(
+            name: "PrefireGeneratorTests",
+            dependencies: ["PrefireGeneratorTool", "PrefireCore"]
         ),
         .plugin(
             name: "PrefirePlaybookPlugin",
             capability: .buildTool(),
             dependencies: [
-                "PrefireBinary",
+                "PrefireGeneratorTool",
             ]
         ),
         .plugin(
             name: "PrefireTestsPlugin",
             capability: .buildTool(),
             dependencies: [
-                "PrefireBinary",
+                "PrefireGeneratorTool",
             ]
-        ),
-        .binaryTarget(
-            name: "PrefireBinary",
-            path: "Binaries/PrefireBinary.artifactbundle"
         ),
     ]
 )

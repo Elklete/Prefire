@@ -1,0 +1,9 @@
+import XCTest
+@testable import {{ argument.mainTarget }}
+
+final class {PREVIEW_FILE_NAME}CustomTemplateGeneratedTests: XCTestCase {
+    func testCustomTemplateWasRendered() {
+        XCTAssertEqual(PluginFixture.name, "source-built-plugin")
+        XCTAssertTrue("{{ argument.file }}".hasSuffix("{PREVIEW_FILE_NAME}Tests.generated.swift"))
+    }
+}

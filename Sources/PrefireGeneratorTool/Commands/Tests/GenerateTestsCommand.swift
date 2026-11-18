@@ -13,6 +13,7 @@ struct GeneratedTestsOptions {
     var template: Path?
     var sources: [Path]
     var output: Path
+    var pluginOutput: Path?
     var prefireEnabledMarker: Bool
     var testTargetPath: Path?
     var cacheBasePath: Path?
@@ -35,6 +36,7 @@ struct GeneratedTestsOptions {
         template: String?,
         sources: [String],
         output: String?,
+        pluginOutput: String?,
         testTargetPath: String?,
         cacheBasePath: String?,
         device: String?,
@@ -55,6 +57,7 @@ struct GeneratedTestsOptions {
 
         self.sources = (config?.tests.sources ?? sources).compactMap({ Path($0) })
         self.output = (config?.tests.testFilePath ?? output).flatMap({ Path($0) }) ?? .current
+        self.pluginOutput = pluginOutput.flatMap({ Path($0) })
         prefireEnabledMarker = config?.tests.previewDefaultEnabled ?? true
         self.cacheBasePath = cacheBasePath.flatMap({ Path($0) })
         self.device = config?.tests.device ?? device
@@ -97,15 +100,18 @@ enum GenerateTestsCommand {
     }
 
     static func run(_ options: GeneratedTestsOptions) async throws {
+        let output = options.pluginOutput ?? (options.output + (options.useGroupedSnapshots ? Constants.snapshotFileName : Constants.snapshotFileTemplated))
+
         try await PrefireGenerator.generate(
             version: Prefire.Version.value,
             sources: options.sources,
-            output: options.output + (options.useGroupedSnapshots ? Constants.snapshotFileName : Constants.snapshotFileTemplated),
+            output: output,
             arguments: await GenerateTestsCommand.makeArguments(for: options),
             inlineTemplate: try options.template?.read(.utf8) ?? EmbeddedTemplates.previewTests,
             defaultEnabled: options.prefireEnabledMarker,
             cacheDir: options.cacheBasePath,
-            useGroupedSnapshots: options.useGroupedSnapshots
+            useGroupedSnapshots: options.useGroupedSnapshots,
+            aggregateUngroupedOutput: options.pluginOutput != nil && !options.useGroupedSnapshots
         )
     }
 
@@ -117,8 +123,9 @@ enum GenerateTestsCommand {
             Logger.warning("⚠️ `split_snapshot_directories: true` requires `use_grouped_snapshots: false` and will be ignored otherwise.")
         }
 
-        let splitDirectories = options.splitSnapshotDirectories && !options.useGroupedSnapshots
-        let snapshotFileName = splitDirectories ? Constants.snapshotFileTemplated : Constants.snapshotFileName
+        let usesPerSourceSnapshotPaths = !options.useGroupedSnapshots
+            && (options.splitSnapshotDirectories || options.pluginOutput != nil)
+        let snapshotFileName = usesPerSourceSnapshotPaths ? Constants.snapshotFileTemplated : Constants.snapshotFileName
         let snapshotOutput = options.testTargetPath.flatMap({ $0 + snapshotFileName })
 
         Logger.info(

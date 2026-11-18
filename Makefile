@@ -6,11 +6,9 @@ SHELL := /bin/bash
 .DELETE_ON_ERROR:
 .DEFAULT_GOAL := help
 
-VERSION_FILE := PrefireExecutable/Sources/prefire/Commands/Version/Version.swift
-ARTIFACT_BUNDLE := Binaries/PrefireBinary.artifactbundle
+VERSION_FILE := Sources/PrefireGeneratorTool/Commands/Version/Version.swift
+CLI_BIN := .build/release/prefire
 CUR_VERSION = $(shell sed -n 's/.*static let value: String = "\([^"]*\)".*/\1/p' $(VERSION_FILE))
-BUNDLE_DIR = $(ARTIFACT_BUNDLE)/prefire-$(CUR_VERSION)-macos
-BUNDLE_BIN = $(BUNDLE_DIR)/bin
 
 # MCP Bundle of `prefire mcp` for the MCP Registry, which wants "mcp" in the file name.
 MCPB_CLI := npx --yes @anthropic-ai/mcpb@2.1.2
@@ -86,7 +84,7 @@ IOS_SIMULATOR_SLIM_JOBS := \
 # `make slim-sim` are added and removed. It survives `simctl erase`.
 IOS_SIMULATOR_DISABLED_STORE = /private/var/tmp/com.apple.CoreSimulator.SimDevice.$(IOS_SIMULATOR_ID)/disabled.plist
 
-.PHONY: help build binary cli test test-cli test-ios slim-sim restore-sim update archive mcpb clean
+.PHONY: help build cli test test-ios integration package-validate validate-source-only slim-sim restore-sim update archive mcpb clean
 
 ##@ General
 
@@ -100,7 +98,7 @@ help: ## Show this help
 	@echo
 
 clean: ## Remove local SwiftPM build products, prefire.tar.gz and .mcpb files
-	rm -rf PrefireExecutable/.build PrefireSnapshotTests/.build .build prefire.tar.gz prefire-mcp-*.mcpb
+	rm -rf PrefireSnapshotTests/.build .build prefire.tar.gz prefire-mcp-*.mcpb
 
 ##@ Build
 
@@ -125,23 +123,22 @@ build: ## Build Prefire (iOS Simulator, Release)
 		exit $$status; \
 	}
 
-binary: ## Build a universal CLI binary and copy it into the artifact bundle
-	$(call require-version)
-	cd PrefireExecutable && swift build -c release --arch arm64 --arch x86_64
-	mkdir -p "$(BUNDLE_BIN)"
-	rm -rf "$(BUNDLE_BIN)"/*
-	cp PrefireExecutable/.build/apple/products/release/prefire "$(BUNDLE_BIN)/prefire"
-
-cli: ## Build the PrefireCLI wrapper (embeds the artifact bundle)
+cli: ## Build the source-backed prefire executable
 	swift build -c release --product prefire
 
 ##@ Test
 
-test: ## Run PrefireExecutable unit tests
-	cd PrefireExecutable && swift test
+test: ## Run all Prefire macOS and generator unit tests
+	swift test
 
-test-cli: ## Run PrefireCLI unit tests
-	swift test --filter PrefireCLITests
+integration: ## Build the source-backed plugins against the integration fixture
+	swift test --package-path Fixtures/PluginIntegration
+
+validate-source-only: ## Reject tracked generator binaries and binary-target wiring
+	Scripts/verify-source-only.sh
+
+package-validate: validate-source-only ## Validate the pinned root package graph
+	swift package resolve --skip-update
 
 test-ios: ## Run the Prefire library tests on an iPhone simulator
 	cd PrefireSnapshotTests && xcodebuild test \
@@ -174,28 +171,22 @@ restore-sim: ## Turn the services of `make slim-sim` back on (takes effect on th
 
 ##@ Release
 
-update: ## Bump version and rebuild the bundled CLI (make update version=x.y.z)
+update: ## Bump the source-built prefire version (make update version=x.y.z)
 	$(call require-version)
 	$(if $(version),,$(error Pass version, e.g. make update version=1.0.0))
 	@echo "New version: $(version)"
 	@echo "Old version: $(CUR_VERSION)"
-	mv "$(BUNDLE_DIR)" "$(ARTIFACT_BUNDLE)/prefire-$(version)-macos"
-	sed -i '' \
-		-e 's/"version": "[^"]*"/"version": "$(version)"/' \
-		-e 's|prefire-[^/"]*-macos|prefire-$(version)-macos|g' \
-		"$(ARTIFACT_BUNDLE)/info.json"
 	sed -i '' 's/static let value: String = "[^"]*"/static let value: String = "$(version)"/' "$(VERSION_FILE)"
-	$(MAKE) binary
 
-archive: ## Pack the bundled CLI into prefire.tar.gz
+archive: cli ## Pack the source-built CLI into prefire.tar.gz
 	$(call require-version)
-	tar -czf prefire.tar.gz -C "$(BUNDLE_BIN)" prefire
+	tar -czf prefire.tar.gz -C "$(dir $(CLI_BIN))" prefire
 
-mcpb: ## Pack the bundled CLI into prefire-mcp-<version>.mcpb and point server.json at it (needs Node)
+mcpb: cli ## Pack the source-built CLI into prefire-mcp-<version>.mcpb and point server.json at it (needs Node)
 	$(call require-version)
 	rm -rf "$(MCPB_STAGE)"
 	mkdir -p "$(MCPB_STAGE)/server"
-	cp "$(BUNDLE_BIN)/prefire" "$(MCPB_STAGE)/server/prefire"
+	cp "$(CLI_BIN)" "$(MCPB_STAGE)/server/prefire"
 	cp LICENSE "$(MCPB_STAGE)/LICENSE"
 	jq --arg v "$(CUR_VERSION)" '.version = $$v' mcpb/manifest.json > "$(MCPB_STAGE)/manifest.json"
 	$(MCPB_CLI) validate "$(MCPB_STAGE)/manifest.json"
