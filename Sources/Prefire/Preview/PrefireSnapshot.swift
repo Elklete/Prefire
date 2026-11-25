@@ -244,6 +244,7 @@ private func isRenderableSize(_ size: CGSize) -> Bool {
     ///   - waitDefaults: How previews that do not say so themselves wait.
     public func loadViewWithPreferences(
         drawHierarchyInKeyWindow: Bool = false,
+        captureMode: SnapshotCaptureMode = .emulated,
         fullPage: Bool = false,
         waitDefaults: SnapshotWaitDefaults = .init()
     ) -> (PrefireSnapshotView, PreferenceKeys) {
@@ -257,11 +258,16 @@ private func isRenderableSize(_ size: CGSize) -> Bool {
             isScreen: isScreen,
             device: device,
             traits: traits,
-            drawHierarchyInKeyWindow: drawHierarchyInKeyWindow
+            drawHierarchyInKeyWindow: drawHierarchyInKeyWindow,
+            captureMode: captureMode
         )
         defer { canvas.dispose() }
 
         guard let resolved = SnapshotWaiter.resolve(preferences.wait, defaults: waitDefaults) else {
+            if canvas.isLiveWindowCapture {
+                let failure = canvas.settlePresentation(timeout: waitDefaults.timeout)
+                preferences.waitResult = failure.map(SnapshotWaitResult.timedOut) ?? .settled(canvas.capture())
+            }
             return (view, preferences)
         }
 
@@ -277,9 +283,13 @@ private func isRenderableSize(_ size: CGSize) -> Bool {
         }
 
         var failure = waitInCanvas(delay: preferences.delay)
-        if failure == nil, fullPage, canvas.stretchToFullPage() != nil {
+        if failure == nil, fullPage, !canvas.isLiveWindowCapture, canvas.stretchToFullPage() != nil {
             // Rows the stretched canvas brings in may start loading in their turn.
             failure = waitInCanvas(delay: 0)
+        }
+
+        if failure == nil, canvas.isLiveWindowCapture {
+            failure = canvas.settlePresentation(timeout: resolved.timeout)
         }
 
         preferences.waitResult = failure.map(SnapshotWaitResult.timedOut) ?? .settled(canvas.capture())

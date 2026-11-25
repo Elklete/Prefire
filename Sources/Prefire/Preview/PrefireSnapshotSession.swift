@@ -48,6 +48,16 @@ public struct SnapshotWaitTimeout: Error, CustomStringConvertible {
     public var description: String { message }
 }
 
+/// Where iOS and tvOS screen snapshots are hosted before capture.
+///
+/// ``emulated`` reproduces SnapshotTesting's independent-device canvas. ``liveWindow`` hosts a
+/// screen preview in the test app's real simulator window, allowing UIKit presentations such as
+/// sheets to use the actual `UIWindowScene` geometry.
+public enum SnapshotCaptureMode: Sendable, Equatable {
+    case emulated
+    case liveWindow
+}
+
 /// Settings of the generated snapshot tests, and the part of their work that does not need
 /// SnapshotTesting: picking the devices and rendering the previews.
 ///
@@ -62,6 +72,9 @@ public struct PrefireSnapshotSession {
     /// Whether to snapshot in the simulator's key window, rendering `UIAppearance` and
     /// `UIVisualEffect`.
     public var drawHierarchyInKeyWindow: Bool
+
+    /// Where screen previews are hosted before capture.
+    public var captureMode: SnapshotCaptureMode
 
     /// Whether screen previews are snapshotted at the height of their whole scrollable content.
     public var fullPage: Bool
@@ -81,6 +94,7 @@ public struct PrefireSnapshotSession {
         osVersion: Int? = nil,
         devices: [String] = [],
         drawHierarchyInKeyWindow: Bool = false,
+        captureMode: SnapshotCaptureMode = .emulated,
         fullPage: Bool = false,
         waitDefaults: SnapshotWaitDefaults = .init(),
         device: DeviceConfig = .defaultSnapshotDevice,
@@ -89,6 +103,7 @@ public struct PrefireSnapshotSession {
         environment = PrefireSnapshotEnvironment(simulatorDevice: simulatorDevice, osVersion: osVersion)
         self.devices = devices
         self.drawHierarchyInKeyWindow = drawHierarchyInKeyWindow
+        self.captureMode = captureMode
         self.fullPage = fullPage
         self.waitDefaults = waitDefaults
         self.device = device
@@ -221,6 +236,7 @@ public struct PrefireSnapshotSession {
         #if os(iOS) || os(tvOS)
         let (view, preferences) = snapshot.loadViewWithPreferences(
             drawHierarchyInKeyWindow: drawHierarchyInKeyWindow,
+            captureMode: captureMode,
             fullPage: fullPage,
             waitDefaults: waitDefaults
         )
@@ -248,6 +264,12 @@ public struct PrefireSnapshotSession {
         }
 
         capture.traits = snapshot.traits
+        if captureMode == .liveWindow, case let .image(image) = capture.comparison {
+            capture.traits = UITraitCollection(traitsFrom: [
+                snapshot.traits,
+                .init(displayScale: image.scale),
+            ])
+        }
         capture.accessibilityHeight = fullPage && snapshot.isScreen ? fullPageHeight : nil
         return capture
         #elseif os(macOS)

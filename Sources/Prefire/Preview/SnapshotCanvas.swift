@@ -20,10 +20,15 @@ final class SnapshotCanvas {
     private let controller: UIHostingController<AnyView>
     private let rootViewController = UIViewController()
     private let window: UIWindow
+    private let originalRootViewController: UIViewController?
     private let safeArea: UIEdgeInsets
     private let traits: UITraitCollection
     private let combinedTraits: UITraitCollection
     private let drawHierarchyInKeyWindow: Bool
+
+    /// `true` when a screen preview uses the simulator's actual `UIWindowScene` rather than an
+    /// emulated canvas. UIKit presentation controllers consult this scene for their geometry.
+    let isLiveWindowCapture: Bool
 
     /// Whether the canvas follows the size of its content, like `SwiftUISnapshotLayout.sizeThatFits`.
     private let isSizedToFit: Bool
@@ -40,13 +45,15 @@ final class SnapshotCanvas {
         isScreen: Bool,
         device: DeviceConfig,
         traits: UITraitCollection,
-        drawHierarchyInKeyWindow: Bool
+        drawHierarchyInKeyWindow: Bool,
+        captureMode: SnapshotCaptureMode = .emulated
     ) {
         controller = UIHostingController(rootView: view)
         safeArea = isScreen ? device.safeArea : .zero
         isSizedToFit = !isScreen
         self.traits = traits
         self.drawHierarchyInKeyWindow = drawHierarchyInKeyWindow
+        isLiveWindowCapture = captureMode == .liveWindow && isScreen
 
         if isSizedToFit {
             if #available(iOS 16.4, tvOS 16.4, *) {
@@ -56,22 +63,29 @@ final class SnapshotCanvas {
             }
         }
 
-        let size = isScreen ? device.size ?? controller.view.frame.size : controller.sizeThatFits(in: .zero)
+        let emulatedSize = isScreen ? device.size ?? controller.view.frame.size : controller.sizeThatFits(in: .zero)
         let combinedTraits = UITraitCollection(traitsFrom: [isScreen ? device.traits : traits, traits])
         self.combinedTraits = combinedTraits
 
-        if drawHierarchyInKeyWindow {
+        if isLiveWindowCapture || drawHierarchyInKeyWindow {
             guard let keyWindow = Self.keyWindow else {
-                fatalError("'drawHierarchyInKeyWindow' requires tests to be run in a host application")
+                fatalError("'drawHierarchyInKeyWindow' and '.liveWindow' capture require tests to be run in a host application")
             }
             window = keyWindow
-            window.frame.size = size
+            if isLiveWindowCapture {
+                originalRootViewController = keyWindow.rootViewController
+            } else {
+                originalRootViewController = nil
+                window.frame.size = emulatedSize
+            }
         } else {
-            window = SnapshotCanvasWindow(size: size, safeArea: safeArea)
+            window = SnapshotCanvasWindow(size: emulatedSize, safeArea: safeArea)
+            originalRootViewController = nil
         }
 
+        let size = isLiveWindowCapture ? window.bounds.size : emulatedSize
         controller.view.frame.size = size
-        add(traits: combinedTraits)
+        add(traits: isLiveWindowCapture ? traits : combinedTraits)
 
         if size.width == 0 || size.height == 0 {
             controller.view.sizeToFit()
@@ -100,6 +114,13 @@ final class SnapshotCanvas {
 
     /// Renders the preview the way SnapshotTesting renders a view.
     func capture() -> UIImage {
+        if isLiveWindowCapture {
+            let bounds = window.bounds
+            return UIGraphicsImageRenderer(bounds: bounds, format: .init(for: window.traitCollection)).image { _ in
+                window.drawHierarchy(in: bounds, afterScreenUpdates: true)
+            }
+        }
+
         followContent()
 
         let initialFrame = view.frame
@@ -124,21 +145,67 @@ final class SnapshotCanvas {
         return data as Data
     }
 
+    /// Lets an actual UIKit presentation complete before the window is captured.
+    ///
+    /// The condition is based on the presented controller and its transition state. UIKit continues
+    /// to composite the sheet's material and shadow briefly after that state reports finished, so a
+    /// quiet window follows the initial stable pass before capture.
+    func settlePresentation(timeout: TimeInterval) -> String? {
+        guard isLiveWindowCapture else { return nil }
+
+        let deadline = ProcessInfo.processInfo.systemUptime + max(timeout, 0)
+        var settledAt: TimeInterval?
+
+        while true {
+            window.setNeedsLayout()
+            window.layoutIfNeeded()
+            rootViewController.view.setNeedsLayout()
+            rootViewController.view.layoutIfNeeded()
+
+            if presentationIsSettled {
+                let now = ProcessInfo.processInfo.systemUptime
+                if let settledAt, now - settledAt >= 0.5 {
+                    return nil
+                }
+                settledAt = settledAt ?? now
+            } else {
+                settledAt = nil
+            }
+
+            guard ProcessInfo.processInfo.systemUptime < deadline else {
+                return "Prefire: the presented view controller did not settle within \(String(format: "%.1f", timeout))s."
+            }
+            runMainLoopOnce(until: deadline)
+        }
+    }
+
     /// Takes the preview out of the window.
     func dispose() {
+        dismissPresentedViewController()
+
         // Representables hand back the same view and view controller every time they are made, and
         // the preview may be hosted again next. Emptying the content dismantles them here, so they
         // leave this hierarchy instead of being taken over while still attached to it.
         controller.rootView = AnyView(EmptyView())
         controller.view.layoutIfNeeded()
 
-        rootViewController.beginAppearanceTransition(false, animated: false)
-        controller.willMove(toParent: nil)
-        controller.view.removeFromSuperview()
-        controller.removeFromParent()
-        controller.didMove(toParent: nil)
-        rootViewController.endAppearanceTransition()
-        window.rootViewController = nil
+        if isLiveWindowCapture {
+            controller.willMove(toParent: nil)
+            controller.view.removeFromSuperview()
+            controller.removeFromParent()
+            controller.didMove(toParent: nil)
+            window.rootViewController = originalRootViewController
+            window.setNeedsLayout()
+            window.layoutIfNeeded()
+        } else {
+            rootViewController.beginAppearanceTransition(false, animated: false)
+            controller.willMove(toParent: nil)
+            controller.view.removeFromSuperview()
+            controller.removeFromParent()
+            controller.didMove(toParent: nil)
+            rootViewController.endAppearanceTransition()
+            window.rootViewController = nil
+        }
     }
 
     // MARK: - Private functions
@@ -152,9 +219,49 @@ final class SnapshotCanvas {
             .first(where: \.isKeyWindow)
     }
 
+    /// The deepest presentation in this canvas, including one presented by SwiftUI's hosting
+    /// controller rather than by the synthetic root controller.
+    private var presentedViewController: UIViewController? {
+        var presentingController = rootViewController
+        while let presented = presentingController.presentedViewController {
+            presentingController = presented
+        }
+        return presentingController === rootViewController ? nil : presentingController
+    }
+
+    private var presentationIsSettled: Bool {
+        guard let presentedViewController else { return true }
+        return presentedViewController.viewIfLoaded?.window != nil
+            && !presentedViewController.isBeingPresented
+            && !presentedViewController.isBeingDismissed
+            && presentedViewController.transitionCoordinator == nil
+            && rootViewController.transitionCoordinator == nil
+    }
+
+    private func dismissPresentedViewController() {
+        guard isLiveWindowCapture, presentedViewController != nil else { return }
+
+        controller.dismiss(animated: false)
+        rootViewController.dismiss(animated: false)
+
+        let deadline = ProcessInfo.processInfo.systemUptime + 1
+        while presentedViewController != nil, ProcessInfo.processInfo.systemUptime < deadline {
+            runMainLoopOnce(until: deadline)
+        }
+    }
+
+    private func runMainLoopOnce(until deadline: TimeInterval) {
+        let remaining = deadline - ProcessInfo.processInfo.systemUptime
+        guard remaining > 0 else { return }
+        RunLoop.main.run(
+            mode: .default,
+            before: Date(timeIntervalSinceNow: min(SnapshotWaiter.pollInterval, remaining))
+        )
+    }
+
     private func add(traits: UITraitCollection) {
         rootViewController.view.backgroundColor = .clear
-        rootViewController.view.frame = window.frame
+        rootViewController.view.frame = isLiveWindowCapture ? window.bounds : window.frame
         rootViewController.preferredContentSize = rootViewController.view.frame.size
 
         controller.view.frame = rootViewController.view.frame
@@ -166,8 +273,10 @@ final class SnapshotCanvas {
 
         window.rootViewController = rootViewController
 
-        rootViewController.beginAppearanceTransition(true, animated: false)
-        rootViewController.endAppearanceTransition()
+        if !isLiveWindowCapture {
+            rootViewController.beginAppearanceTransition(true, animated: false)
+            rootViewController.endAppearanceTransition()
+        }
 
         rootViewController.view.setNeedsLayout()
         rootViewController.view.layoutIfNeeded()
